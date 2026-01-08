@@ -15,7 +15,7 @@ export const TimelineEntry: React.FC<TimelineEntryProps> = ({ event, isLast, has
   // Format time as "7:31 am"
   const hours = event.timestamp.getHours();
   const minutes = event.timestamp.getMinutes();
-  const ampm = hours >= 12 ? 'pm' : 'am';
+  const ampm = hours >= 12 ? 'PM' : 'AM';
   const hour12 = hours % 12 || 12;
   const timeStr = `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 
