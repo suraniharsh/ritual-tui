@@ -1,0 +1,63 @@
+import React from 'react';
+import { Box, Text } from 'ink';
+import { useTheme } from '../../contexts/ThemeContext';
+import type { Task } from '../../types/task';
+
+interface TaskItemProps {
+  task: Task;
+  depth: number;
+  isSelected: boolean;
+  isExpanded: boolean;
+}
+
+export const TaskItem: React.FC<TaskItemProps> = ({ task, depth, isSelected, isExpanded }) => {
+  const { theme } = useTheme();
+
+  const stateColors: Record<string, string | undefined> = {
+    todo: theme.colors.taskStateTodo,
+    completed: theme.colors.taskStateCompleted,
+    delegated: theme.colors.taskStateDelegated,
+    delayed: theme.colors.taskStateDelayed,
+  };
+
+  let checkbox = '☐';
+  if (task.state === 'completed') {
+    checkbox = '☑';
+  } else if (task.state === 'delegated') {
+    checkbox = '↦';
+  } else if (task.state === 'delayed') {
+    checkbox = '⏸';
+  }
+
+  let expandIcon = '  ';
+  if (task.children.length > 0) {
+    expandIcon = isExpanded ? '▼ ' : '▶ ';
+  }
+  const indent = '  '.repeat(depth);
+  const selector = isSelected ? '>' : ' ';
+  const textColor = stateColors[task.state] || theme.colors.foreground;
+  const strikethrough = task.state === 'completed';
+
+  return (
+    <Box>
+      <Text color={isSelected ? theme.colors.focusIndicator : theme.colors.foreground}>
+        {selector}
+      </Text>
+      <Text> </Text>
+      <Text color={textColor}>{checkbox}</Text>
+      <Text> </Text>
+      <Text>{expandIcon}</Text>
+      <Text>{indent}</Text>
+      <Text color={textColor} strikethrough={strikethrough} dimColor={task.state === 'delayed'}>
+        {task.title}
+      </Text>
+      {task.recurrence && (
+        <Text color={isSelected ? theme.colors.focusIndicator : theme.colors.timelineEventStarted}>
+          {' '}
+          ↺
+        </Text>
+      )}
+      {task.startTime && !task.endTime && <Text color={theme.colors.timelineEventStarted}> ▶</Text>}
+    </Box>
+  );
+};
