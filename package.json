@@ -1,6 +1,6 @@
 {
   "name": "ritual-tui",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A TUI app for daily task logging and time tracking",
   "type": "module",
   "main": "dist/index.js",
@@ -10,6 +10,14 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/suraniharsh/ritual-tui.git"
+  },
+  "homepage": "https://github.com/suraniharsh/ritual-tui",
+  "bugs": {
+    "url": "https://github.com/suraniharsh/ritual-tui/issues"
+  },
   "scripts": {
     "dev": "tsx src/index.tsx",
     "build": "tsup src/index.tsx --format esm --clean",
