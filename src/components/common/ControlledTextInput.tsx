@@ -47,219 +47,138 @@ export const ControlledTextInput: React.FC<Props> = ({
     }
   }, [value]);
 
-  // Helper to find word start (for Ctrl+W, Alt+B)
-  const findWordStart = (text: string, pos: number): number => {
-    let i = pos - 1;
-    while (i >= 0 && text[i] === ' ') i--;
-    while (i >= 0 && text[i] !== ' ') i--;
-    return i + 1;
-  };
+  // Optimized inline key processing - no function call overhead
+  // Uses direct key checks with early returns for maximum performance
 
-  // Helper to find word end (for Alt+F)
-  const findWordEnd = (text: string, pos: number): number => {
-    let i = pos;
-    while (i < text.length && text[i] === ' ') i++;
-    while (i < text.length && text[i] !== ' ') i++;
-    return i;
-  };
-
-  // Handle exit keys (Escape, Return)
-  const handleExitKeys = (
-    key: any,
-    currentValue: string,
-    onCancel?: () => void,
-    onSubmit?: (value: string) => void,
-    onChange?: (value: string) => void,
-  ): boolean => {
-    if (key.escape) {
-      onCancel?.();
-      return true;
-    }
-    if (key.return) {
-      // Notify parent of final value before submitting
-      if (onChange && currentValue !== sentValueRef.current) {
-        onChange(currentValue);
-        sentValueRef.current = currentValue;
-      }
-      onSubmit?.(currentValue);
-      return true;
-    }
-    return false;
-  };
-
-  // Handle backspace and delete operations
-  const handleBackspaceDelete = (
-    key: any,
-    currentValue: string,
-    cursor: number,
-  ): { value: string; cursor: number; handled: boolean } => {
-    if (key.backspace) {
-      if (key.ctrl) {
-        const wordStart = findWordStart(currentValue, cursor);
-        return {
-          value: currentValue.slice(0, wordStart) + currentValue.slice(cursor),
-          cursor: wordStart,
-          handled: true,
-        };
-      } else if (cursor > 0) {
-        return {
-          value: currentValue.slice(0, cursor - 1) + currentValue.slice(cursor),
-          cursor: cursor - 1,
-          handled: true,
-        };
-      }
-    } else if (key.delete) {
-      if (cursor >= currentValue.length && cursor > 0) {
-        return {
-          value: currentValue.slice(0, cursor - 1) + currentValue.slice(cursor),
-          cursor: cursor - 1,
-          handled: true,
-        };
-      } else if (cursor < currentValue.length) {
-        return {
-          value: currentValue.slice(0, cursor) + currentValue.slice(cursor + 1),
-          cursor,
-          handled: true,
-        };
-      }
-    }
-    return { value: currentValue, cursor, handled: false };
-  };
-
-  // Handle cursor movement
-  const handleCursorMovement = (
-    input: string,
-    key: any,
-    currentValue: string,
-    cursor: number,
-  ): { cursor: number; handled: boolean } => {
-    if (key.leftArrow && !key.ctrl) {
-      return { cursor: Math.max(0, cursor - 1), handled: true };
-    }
-    if (key.rightArrow && !key.ctrl) {
-      return { cursor: Math.min(currentValue.length, cursor + 1), handled: true };
-    }
-    if ((key.leftArrow && key.ctrl) || (key.meta && input === 'b')) {
-      return { cursor: findWordStart(currentValue, cursor), handled: true };
-    }
-    if ((key.rightArrow && key.ctrl) || (key.meta && input === 'f')) {
-      return { cursor: findWordEnd(currentValue, cursor), handled: true };
-    }
-    return { cursor, handled: false };
-  };
-
-  // Handle Ctrl key combinations
-  const handleCtrlCombinations = (
-    input: string,
-    key: any,
-    currentValue: string,
-    cursor: number,
-  ): { value: string; cursor: number; handled: boolean } => {
-    if (key.ctrl && input === 'a') {
-      return { value: currentValue, cursor: 0, handled: true };
-    } else if (key.ctrl && input === 'e') {
-      return { value: currentValue, cursor: currentValue.length, handled: true };
-    } else if (key.ctrl && input === 'u') {
-      return { value: currentValue.slice(cursor), cursor: 0, handled: true };
-    } else if (key.ctrl && input === 'k') {
-      return { value: currentValue.slice(0, cursor), cursor, handled: true };
-    } else if (key.ctrl && input === 'w') {
-      const wordStart = findWordStart(currentValue, cursor);
-      return {
-        value: currentValue.slice(0, wordStart) + currentValue.slice(cursor),
-        cursor: wordStart,
-        handled: true,
-      };
-    }
-    return { value: currentValue, cursor, handled: false };
-  };
-
-  // Handle character input
-  const handleCharacterInput = (
-    input: string,
-    key: any,
-    currentValue: string,
-    cursor: number,
-    maxLength?: number,
-  ): { value: string; cursor: number; handled: boolean } => {
-    if (!key.ctrl && !key.meta && input.length > 0) {
-      // Filter out non-printable control characters without using control characters in regex
-      const filtered = Array.from(input)
-        .filter((char) => {
-          const code = char.codePointAt(0);
-          if (code === undefined) return false;
-          return (code >= 32 && code <= 126) || code > 127; // Basic printable ASCII + Extended
-        })
-        .join('');
-
-      if (filtered) {
-        const possibleValue = currentValue.slice(0, cursor) + filtered + currentValue.slice(cursor);
-        if (!maxLength || possibleValue.length <= maxLength) {
-          return {
-            value: possibleValue,
-            cursor: cursor + filtered.length,
-            handled: true,
-          };
-        }
-      }
-    }
-    return { value: currentValue, cursor, handled: false };
-  };
-
-  // Main key press handler that delegates to specific handlers
-  const handleKeyPress = (
-    input: string,
-    key: any,
-    currentValue: string,
-    cursor: number,
-    maxLength?: number,
-  ): { value: string; cursor: number; handled: boolean } => {
-    // Try backspace/delete
-    const deleteResult = handleBackspaceDelete(key, currentValue, cursor);
-    if (deleteResult.handled) return deleteResult;
-
-    // Try cursor movement
-    const movementResult = handleCursorMovement(input, key, currentValue, cursor);
-    if (movementResult.handled) {
-      return { value: currentValue, cursor: movementResult.cursor, handled: true };
-    }
-
-    // Try Ctrl combinations
-    const ctrlResult = handleCtrlCombinations(input, key, currentValue, cursor);
-    if (ctrlResult.handled) return ctrlResult;
-
-    // Try character input
-    const charResult = handleCharacterInput(input, key, currentValue, cursor, maxLength);
-    if (charResult.handled) return charResult;
-
-    return { value: currentValue, cursor, handled: false };
-  };
+  // Optimized inline key processing - no function call overhead
+  // Uses direct key checks with early returns for maximum performance
 
   useInput(
     (input, key) => {
-      const currentValue = valueRef.current;
-      const currentCursor = cursorRef.current;
+      const val = valueRef.current;
+      const cur = cursorRef.current;
 
-      // === EXIT HANDLERS ===
-      if (handleExitKeys(key, currentValue, onCancel, onSubmit, onChange)) return;
-
+      // Exit keys (highest priority)
+      if (key.escape) {
+        onCancel?.();
+        return;
+      }
+      if (key.return) {
+        if (val !== sentValueRef.current) {
+          onChange(val);
+          sentValueRef.current = val;
+        }
+        onSubmit(val);
+        return;
+      }
       if (input === '\r' || input === '\n') return;
 
-      // Handle all key types
-      const {
-        value: nextValue,
-        cursor: nextCursor,
-        handled,
-      } = handleKeyPress(input, key, currentValue, currentCursor, maxLength);
+      let nextValue = val;
+      let nextCursor = cur;
 
-      // Unhandled key - exit early
-      if (!handled) return;
+      // Backspace/Delete (common operations)
+      if (key.backspace) {
+        if (key.ctrl) {
+          // Delete word backward
+          let i = cur - 1;
+          while (i >= 0 && val[i] === ' ') i--;
+          while (i >= 0 && val[i] !== ' ') i--;
+          const wordStart = i + 1;
+          nextValue = val.slice(0, wordStart) + val.slice(cur);
+          nextCursor = wordStart;
+        } else if (cur > 0) {
+          nextValue = val.slice(0, cur - 1) + val.slice(cur);
+          nextCursor = cur - 1;
+        } else return;
+      } else if (key.delete) {
+        if (cur >= val.length && cur > 0) {
+          nextValue = val.slice(0, cur - 1) + val.slice(cur);
+          nextCursor = cur - 1;
+        } else if (cur < val.length) {
+          nextValue = val.slice(0, cur) + val.slice(cur + 1);
+        } else return;
+      }
+      // Simple cursor movement (very common)
+      else if (key.leftArrow && !key.ctrl) {
+        nextCursor = Math.max(0, cur - 1);
+      } else if (key.rightArrow && !key.ctrl) {
+        nextCursor = Math.min(val.length, cur + 1);
+      }
+      // Word-based cursor movement
+      else if (key.leftArrow && key.ctrl) {
+        let i = cur - 1;
+        while (i >= 0 && val[i] === ' ') i--;
+        while (i >= 0 && val[i] !== ' ') i--;
+        nextCursor = i + 1;
+      } else if (key.rightArrow && key.ctrl) {
+        let i = cur;
+        while (i < val.length && val[i] === ' ') i++;
+        while (i < val.length && val[i] !== ' ') i++;
+        nextCursor = i;
+      } else if (key.meta && input === 'b') {
+        let i = cur - 1;
+        while (i >= 0 && val[i] === ' ') i--;
+        while (i >= 0 && val[i] !== ' ') i--;
+        nextCursor = i + 1;
+      } else if (key.meta && input === 'f') {
+        let i = cur;
+        while (i < val.length && val[i] === ' ') i++;
+        while (i < val.length && val[i] !== ' ') i++;
+        nextCursor = i;
+      }
+      // Ctrl key combinations
+      else if (key.ctrl && input === 'a') {
+        nextCursor = 0;
+      } else if (key.ctrl && input === 'e') {
+        nextCursor = val.length;
+      } else if (key.ctrl && input === 'u') {
+        nextValue = val.slice(cur);
+        nextCursor = 0;
+      } else if (key.ctrl && input === 'k') {
+        nextValue = val.slice(0, cur);
+      } else if (key.ctrl && input === 'w') {
+        let i = cur - 1;
+        while (i >= 0 && val[i] === ' ') i--;
+        while (i >= 0 && val[i] !== ' ') i--;
+        const wordStart = i + 1;
+        nextValue = val.slice(0, wordStart) + val.slice(cur);
+        nextCursor = wordStart;
+      }
+      // Regular character input
+      else if (!key.ctrl && !key.meta && input.length > 0) {
+        // Fast path: single printable ASCII character (most common case)
+        if (input.length === 1) {
+          const code = input.charCodeAt(0);
+          if ((code >= 32 && code <= 126) || code > 127) {
+            const possibleValue = val.slice(0, cur) + input + val.slice(cur);
+            if (!maxLength || possibleValue.length <= maxLength) {
+              nextValue = possibleValue;
+              nextCursor = cur + 1;
+            } else return;
+          } else return;
+        } else {
+          // Slow path: multi-char or needs filtering
+          const filtered = Array.from(input)
+            .filter((char) => {
+              const code = char.codePointAt(0);
+              return code !== undefined && ((code >= 32 && code <= 126) || code > 127);
+            })
+            .join('');
+          if (filtered) {
+            const possibleValue = val.slice(0, cur) + filtered + val.slice(cur);
+            if (!maxLength || possibleValue.length <= maxLength) {
+              nextValue = possibleValue;
+              nextCursor = cur + filtered.length;
+            } else return;
+          } else return;
+        }
+      } else {
+        // Unhandled key
+        return;
+      }
 
-      // Update refs and trigger re-render (no parent re-render)
-      const valueChanged = nextValue !== currentValue;
-      const cursorChanged = nextCursor !== currentCursor;
-
-      if (valueChanged || cursorChanged) {
+      // Only update if something changed
+      if (nextValue !== val || nextCursor !== cur) {
         valueRef.current = nextValue;
         cursorRef.current = nextCursor;
         setRenderTrigger((prev) => prev + 1);
