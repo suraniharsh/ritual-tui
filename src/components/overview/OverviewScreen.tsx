@@ -60,27 +60,30 @@ export const OverviewScreen: React.FC = () => {
     setScrollOffset(0);
   }, [overviewMonth]);
 
-  useInput((input: string, key) => {
-    if (key.escape) {
-      setShowOverview(false);
-    }
+  useInput(
+    (input: string, key) => {
+      if (key.escape) {
+        setShowOverview(false);
+      }
 
-    if (input === 'n' || key.rightArrow) {
-      handleNextMonth();
-    }
+      if (input === 'n' || key.rightArrow) {
+        handleNextMonth();
+      }
 
-    if (input === 'p' || key.leftArrow) {
-      handlePrevMonth();
-    }
+      if (input === 'p' || key.leftArrow) {
+        handlePrevMonth();
+      }
 
-    if (input === 'j' || key.downArrow) {
-      setScrollOffset((prev) => Math.min(prev + 1, Math.max(0, rows - visibleRows)));
-    }
+      if (input === 'j' || key.downArrow) {
+        setScrollOffset((prev) => Math.min(prev + 1, Math.max(0, rows - visibleRows)));
+      }
 
-    if (input === 'k' || key.upArrow) {
-      setScrollOffset((prev) => Math.max(prev - 1, 0));
-    }
-  });
+      if (input === 'k' || key.upArrow) {
+        setScrollOffset((prev) => Math.max(prev - 1, 0));
+      }
+    },
+    { isActive: !isInputMode },
+  );
 
   const monthName = formatDate(new Date(overviewMonth.year, overviewMonth.month, 1), 'MMMM yyyy');
 

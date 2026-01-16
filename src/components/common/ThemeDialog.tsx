@@ -123,7 +123,7 @@ export const ThemeDialog: React.FC = () => {
         handleListMode(input, key, selectedIndex, themeItems);
       }
     },
-    { isActive: true },
+    { isActive: focusMode !== 'search' },
   );
 
   // Get the currently selected theme name
