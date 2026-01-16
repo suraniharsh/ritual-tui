@@ -10,7 +10,7 @@ import { useTerminalSize } from '../../hooks/useTerminalSize';
 
 export const OverviewScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { tasks, overviewMonth, setOverviewMonth, setShowOverview } = useApp();
+  const { tasks, overviewMonth, setOverviewMonth, setShowOverview, isInputMode } = useApp();
   const [scrollOffset, setScrollOffset] = React.useState(0);
   const { height: terminalHeight } = useTerminalSize();
 
