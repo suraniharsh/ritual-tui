@@ -108,26 +108,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   } | null>(null);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const tasksRef = useRef(tasks);
+  const timelineRef = useRef(timeline);
 
   // Function to clear timeline for a specific date
   const clearTimelineForDate = useCallback(
     (dateStr: string) => {
-      pushUndoAction('TIMELINE_CLEAR', tasks, timeline);
+      const latestTasks = tasksRef.current;
+      const latestTimeline = timelineRef.current;
+      pushUndoAction('TIMELINE_CLEAR', latestTasks, latestTimeline);
       setTimeline((prev) => {
         const newTimeline = { ...prev };
         delete newTimeline[dateStr];
         return newTimeline;
       });
     },
-    [pushUndoAction, tasks, timeline],
+    [pushUndoAction, setTimeline],
   );
 
   // Push current state to undo stack before a mutation
   const pushUndoableAction = useCallback(
     (actionType: UndoActionType) => {
-      pushUndoAction(actionType, tasks, timeline);
+      const latestTasks = tasksRef.current;
+      const latestTimeline = timelineRef.current;
+      pushUndoAction(actionType, latestTasks, latestTimeline);
     },
-    [pushUndoAction, tasks, timeline],
+    [pushUndoAction],
   );
 
   // Perform undo operation
@@ -142,18 +148,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Skip a version for update notifications
   const skipVersion = useCallback(
     (version: string) => {
-      if (data) {
-        save({
-          ...data,
+      const currentData = dataRef.current;
+      const saveFn = saveRef.current;
+      if (currentData && saveFn) {
+        saveFn({
+          ...currentData,
           settings: {
-            ...data.settings,
+            ...currentData.settings,
             skippedVersion: version,
           },
         });
       }
       setShowUpdateDialog(false);
     },
-    [data, save],
+    [setShowUpdateDialog],
   );
 
   // Track if initial data has been loaded to prevent save loop
@@ -166,6 +174,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     dataRef.current = data;
     saveRef.current = save;
   }, [data, save]);
+
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+
+  useEffect(() => {
+    timelineRef.current = timeline;
+  }, [timeline]);
 
   // Load data from storage (only once)
   useEffect(() => {
