@@ -1,6 +1,6 @@
 {
   "name": "ritual-tui",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A TUI app for daily task logging and time tracking",
   "type": "module",
   "main": "dist/index.js",
