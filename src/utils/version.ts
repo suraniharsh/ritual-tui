@@ -1,4 +1,21 @@
-export const CURRENT_VERSION = '0.2.2';
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+// Dynamically read version from package.json
+function getVersionFromPackageJson(): string {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const packageJsonPath = join(__dirname, '../../package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    return packageJson.version;
+  } catch (error) {
+    return '0.0.0'; // Fallback version
+  }
+}
+
+export const CURRENT_VERSION = getVersionFromPackageJson();
 export const PACKAGE_NAME = 'ritual-tui';
 
 export interface UpdateInfo {
@@ -10,7 +27,7 @@ export interface UpdateInfo {
 export async function checkForUpdate(): Promise<UpdateInfo> {
   try {
     const res = await fetch(`https://registry.npmjs.org/${PACKAGE_NAME}/latest`);
-    const data = await res.json();
+    const data = (await res.json()) as { version: string };
     const latestVersion = data.version;
 
     return {
