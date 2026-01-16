@@ -1,4 +1,4 @@
-import React, { useRef, useReducer, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Text, useInput } from 'ink';
 
 type Props = {
@@ -26,32 +26,25 @@ export const ControlledTextInput: React.FC<Props> = ({
   color,
   maxLength,
 }) => {
-  // Use refs for ALL mutable state to avoid race conditions
+  // Local state for triggering re-renders
+  const [, setRenderTrigger] = useState(0);
+
+  // Refs to always have latest values in useInput callback (avoids stale closures)
   const valueRef = useRef(value);
   const cursorRef = useRef(value.length);
 
-  // Force re-render mechanism
-  const [, forceRender] = useReducer((x) => x + 1, 0);
+  // Track if we sent the last value to parent
+  const sentValueRef = useRef(value);
 
-  // Track emitted values to distinguish echoes from external changes
-  const sentValuesRef = useRef(new Set<string>([value]));
-
-  // Sync with external value changes
+  // Sync with external value changes (only if different from what we sent)
   useEffect(() => {
-    if (value === valueRef.current) {
-      return;
+    if (value !== sentValueRef.current && value !== valueRef.current) {
+      // Genuine external change - accept it
+      valueRef.current = value;
+      cursorRef.current = value.length;
+      sentValueRef.current = value;
+      setRenderTrigger((prev) => prev + 1);
     }
-
-    if (sentValuesRef.current.has(value)) {
-      return;
-    }
-
-    // Genuine external change - accept it
-    valueRef.current = value;
-    cursorRef.current = value.length;
-    sentValuesRef.current.clear();
-    sentValuesRef.current.add(value);
-    forceRender();
   }, [value]);
 
   // Helper to find word start (for Ctrl+W, Alt+B)
@@ -76,12 +69,18 @@ export const ControlledTextInput: React.FC<Props> = ({
     currentValue: string,
     onCancel?: () => void,
     onSubmit?: (value: string) => void,
+    onChange?: (value: string) => void,
   ): boolean => {
     if (key.escape) {
       onCancel?.();
       return true;
     }
     if (key.return) {
+      // Notify parent of final value before submitting
+      if (onChange && currentValue !== sentValueRef.current) {
+        onChange(currentValue);
+        sentValueRef.current = currentValue;
+      }
       onSubmit?.(currentValue);
       return true;
     }
@@ -239,10 +238,10 @@ export const ControlledTextInput: React.FC<Props> = ({
   useInput(
     (input, key) => {
       const currentValue = valueRef.current;
-      const cursor = cursorRef.current;
+      const currentCursor = cursorRef.current;
 
       // === EXIT HANDLERS ===
-      if (handleExitKeys(key, currentValue, onCancel, onSubmit)) return;
+      if (handleExitKeys(key, currentValue, onCancel, onSubmit, onChange)) return;
 
       if (input === '\r' || input === '\n') return;
 
@@ -251,25 +250,19 @@ export const ControlledTextInput: React.FC<Props> = ({
         value: nextValue,
         cursor: nextCursor,
         handled,
-      } = handleKeyPress(input, key, currentValue, cursor, maxLength);
+      } = handleKeyPress(input, key, currentValue, currentCursor, maxLength);
 
       // Unhandled key - exit early
       if (!handled) return;
 
-      // Update refs and trigger render if changed
+      // Update refs and trigger re-render (no parent re-render)
       const valueChanged = nextValue !== currentValue;
-      const cursorChanged = nextCursor !== cursor;
+      const cursorChanged = nextCursor !== currentCursor;
 
       if (valueChanged || cursorChanged) {
         valueRef.current = nextValue;
         cursorRef.current = nextCursor;
-
-        if (valueChanged) {
-          sentValuesRef.current.add(nextValue);
-          onChange(nextValue);
-        }
-
-        forceRender();
+        setRenderTrigger((prev) => prev + 1);
       }
     },
     { isActive: focus },
@@ -277,13 +270,13 @@ export const ControlledTextInput: React.FC<Props> = ({
 
   // Read from refs for rendering
   const displayValue = valueRef.current;
-  const cursor = cursorRef.current;
+  const displayCursor = cursorRef.current;
   const showPlaceholder = !displayValue && placeholder;
 
   // Split text around cursor
-  const beforeCursor = displayValue.slice(0, cursor);
-  const atCursor = displayValue[cursor] || ' ';
-  const afterCursor = displayValue.slice(cursor + 1);
+  const beforeCursor = displayValue.slice(0, displayCursor);
+  const atCursor = displayValue[displayCursor] || ' ';
+  const afterCursor = displayValue.slice(displayCursor + 1);
 
   return (
     <Text>
