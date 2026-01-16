@@ -69,17 +69,16 @@ export const UndoProvider: React.FC<UndoProviderProps> = ({ children }) => {
   );
 
   const undo = useCallback((): UndoAction | null => {
-    if (undoStack.length === 0) {
-      return null;
-    }
-
-    const action = undoStack.at(-1) || null;
-    if (!action) {
-      return null;
-    }
-    setUndoStack((prev) => prev.slice(0, -1));
+    let action: UndoAction | null = null;
+    setUndoStack((prev) => {
+      action = prev.at(-1) ?? null;
+      if (!action) {
+        return prev;
+      }
+      return prev.slice(0, -1);
+    });
     return action;
-  }, [undoStack]);
+  }, []);
 
   const clearUndoStack = useCallback(() => {
     setUndoStack([]);
@@ -92,7 +91,7 @@ export const UndoProvider: React.FC<UndoProviderProps> = ({ children }) => {
       canUndo: undoStack.length > 0,
       clearUndoStack,
     }),
-    [pushUndoAction, undo, undoStack.length, clearUndoStack],
+    [pushUndoAction, undoStack.length, undo, clearUndoStack],
   );
 
   return <UndoContext.Provider value={contextValue}>{children}</UndoContext.Provider>;

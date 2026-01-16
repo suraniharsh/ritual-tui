@@ -108,26 +108,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   } | null>(null);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const tasksRef = useRef(tasks);
+  const timelineRef = useRef(timeline);
 
   // Function to clear timeline for a specific date
   const clearTimelineForDate = useCallback(
     (dateStr: string) => {
-      pushUndoAction('TIMELINE_CLEAR', tasks, timeline);
+      const latestTasks = tasksRef.current;
+      const latestTimeline = timelineRef.current;
+      pushUndoAction('TIMELINE_CLEAR', latestTasks, latestTimeline);
       setTimeline((prev) => {
         const newTimeline = { ...prev };
         delete newTimeline[dateStr];
         return newTimeline;
       });
     },
-    [pushUndoAction, tasks, timeline],
+    [pushUndoAction, setTimeline],
   );
 
   // Push current state to undo stack before a mutation
   const pushUndoableAction = useCallback(
     (actionType: UndoActionType) => {
-      pushUndoAction(actionType, tasks, timeline);
+      const latestTasks = tasksRef.current;
+      const latestTimeline = timelineRef.current;
+      pushUndoAction(actionType, latestTasks, latestTimeline);
     },
-    [pushUndoAction, tasks, timeline],
+    [pushUndoAction],
   );
 
   // Perform undo operation
@@ -142,18 +148,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Skip a version for update notifications
   const skipVersion = useCallback(
     (version: string) => {
-      if (data) {
-        save({
-          ...data,
+      const currentData = dataRef.current;
+      const saveFn = saveRef.current;
+      if (currentData && saveFn) {
+        saveFn({
+          ...currentData,
           settings: {
-            ...data.settings,
+            ...currentData.settings,
             skippedVersion: version,
           },
         });
       }
       setShowUpdateDialog(false);
     },
-    [data, save],
+    [setShowUpdateDialog],
   );
 
   // Track if initial data has been loaded to prevent save loop
@@ -166,6 +174,134 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     dataRef.current = data;
     saveRef.current = save;
   }, [data, save]);
+
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+
+  useEffect(() => {
+    timelineRef.current = timeline;
+  }, [timeline]);
+
+  const isModalOpen = React.useMemo(
+    () =>
+      showHelp ||
+      showThemeDialog ||
+      showOverview ||
+      showClearTimelineDialog ||
+      showUpdateDialog ||
+      showSettingsDialog ||
+      showRecurringTaskDialog ||
+      showRecurringEditDialog,
+    [
+      showHelp,
+      showThemeDialog,
+      showOverview,
+      showClearTimelineDialog,
+      showUpdateDialog,
+      showSettingsDialog,
+      showRecurringTaskDialog,
+      showRecurringEditDialog,
+    ],
+  );
+
+  const actions = React.useMemo(
+    () => ({
+      setSelectedDate,
+      setTasks,
+      setTimeline,
+      setActivePane,
+      setShowHelp,
+      setIsInputMode,
+      setShowOverview,
+      setOverviewMonth,
+      setExitConfirmation,
+      setShowThemeDialog,
+      setShowClearTimelineDialog,
+      setShowSettingsDialog,
+      setShowRecurringTaskDialog,
+      setRecurringTaskId,
+      setShowRecurringEditDialog,
+      setRecurringEditConfig,
+      setShowUpdateDialog,
+      clearTimelineForDate,
+      saveNow,
+      pushUndoableAction,
+      performUndo,
+      skipVersion,
+    }),
+    [
+      setSelectedDate,
+      setTasks,
+      setTimeline,
+      setActivePane,
+      setShowHelp,
+      setIsInputMode,
+      setShowOverview,
+      setOverviewMonth,
+      setExitConfirmation,
+      setShowThemeDialog,
+      setShowClearTimelineDialog,
+      setShowSettingsDialog,
+      setShowRecurringTaskDialog,
+      setRecurringTaskId,
+      setShowRecurringEditDialog,
+      setRecurringEditConfig,
+      setShowUpdateDialog,
+      clearTimelineForDate,
+      saveNow,
+      pushUndoableAction,
+      performUndo,
+      skipVersion,
+    ],
+  );
+
+  const stateValues = React.useMemo(
+    () => ({
+      selectedDate,
+      tasks,
+      timeline,
+      activePane,
+      showHelp,
+      isInputMode,
+      showOverview,
+      overviewMonth,
+      exitConfirmation,
+      showThemeDialog,
+      showClearTimelineDialog,
+      showSettingsDialog,
+      showRecurringTaskDialog,
+      recurringTaskId,
+      showRecurringEditDialog,
+      recurringEditConfig,
+      isModalOpen,
+      canUndo,
+      showUpdateDialog,
+      updateInfo,
+    }),
+    [
+      selectedDate,
+      tasks,
+      timeline,
+      activePane,
+      showHelp,
+      isInputMode,
+      showOverview,
+      overviewMonth,
+      exitConfirmation,
+      showThemeDialog,
+      showClearTimelineDialog,
+      showSettingsDialog,
+      showRecurringTaskDialog,
+      recurringTaskId,
+      showRecurringEditDialog,
+      recurringEditConfig,
+      isModalOpen,
+      canUndo,
+      showUpdateDialog,
+      updateInfo,
+    ],
+  );
 
   // Load data from storage (only once)
   useEffect(() => {
@@ -230,100 +366,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const contextValue = React.useMemo(
     () => ({
-      selectedDate,
-      setSelectedDate,
-      tasks,
-      setTasks,
-      timeline,
-      setTimeline,
-      activePane,
-      setActivePane,
-      showHelp,
-      setShowHelp,
-      isInputMode,
-      setIsInputMode,
-      showOverview,
-      setShowOverview,
-      overviewMonth,
-      setOverviewMonth,
-      exitConfirmation,
-      setExitConfirmation,
-      showThemeDialog,
-      setShowThemeDialog,
-      showClearTimelineDialog,
-      setShowClearTimelineDialog,
-      showSettingsDialog,
-      setShowSettingsDialog,
-      showRecurringTaskDialog,
-      setShowRecurringTaskDialog,
-      recurringTaskId,
-      setRecurringTaskId,
-      showRecurringEditDialog,
-      setShowRecurringEditDialog,
-      recurringEditConfig,
-      setRecurringEditConfig,
-      clearTimelineForDate,
-      isModalOpen:
-        showHelp ||
-        showThemeDialog ||
-        showOverview ||
-        showClearTimelineDialog ||
-        showUpdateDialog ||
-        showSettingsDialog ||
-        showRecurringTaskDialog ||
-        showRecurringEditDialog,
-      saveNow,
-      pushUndoableAction,
-      performUndo,
-      canUndo,
-      showUpdateDialog,
-      setShowUpdateDialog,
-      updateInfo,
-      skipVersion,
+      ...stateValues,
+      ...actions,
     }),
-    [
-      selectedDate,
-      setSelectedDate,
-      tasks,
-      setTasks,
-      timeline,
-      setTimeline,
-      activePane,
-      setActivePane,
-      showHelp,
-      setShowHelp,
-      isInputMode,
-      setIsInputMode,
-      showOverview,
-      setShowOverview,
-      overviewMonth,
-      setOverviewMonth,
-      exitConfirmation,
-      setExitConfirmation,
-      showThemeDialog,
-      setShowThemeDialog,
-      showClearTimelineDialog,
-      setShowClearTimelineDialog,
-      showSettingsDialog,
-      setShowSettingsDialog,
-      showRecurringTaskDialog,
-      setShowRecurringTaskDialog,
-      recurringTaskId,
-      setRecurringTaskId,
-      showRecurringEditDialog,
-      setShowRecurringEditDialog,
-      recurringEditConfig,
-      setRecurringEditConfig,
-      clearTimelineForDate,
-      saveNow,
-      pushUndoableAction,
-      performUndo,
-      canUndo,
-      showUpdateDialog,
-      setShowUpdateDialog,
-      updateInfo,
-      skipVersion,
-    ],
+    [stateValues, actions],
   );
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
