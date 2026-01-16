@@ -1,21 +1,7 @@
-import { readFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+// @ts-ignore - JSON import
+import packageJson from '../../package.json' assert { type: 'json' };
 
-// Dynamically read version from package.json
-function getVersionFromPackageJson(): string {
-  try {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    const packageJsonPath = join(__dirname, '../../package.json');
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-    return packageJson.version;
-  } catch (error) {
-    return '0.0.0'; // Fallback version
-  }
-}
-
-export const CURRENT_VERSION = getVersionFromPackageJson();
+export const CURRENT_VERSION = packageJson.version;
 export const PACKAGE_NAME = 'ritual-tui';
 
 export interface UpdateInfo {
