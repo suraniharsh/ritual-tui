@@ -72,24 +72,13 @@ export const TasksPane: React.FC = () => {
   const dayTasks = useMemo(() => {
     return taskService.getDayTasks(tasks, dateStr, recurringTaskService);
   }, [tasks, dateStr]);
-  const stats = taskService.getTaskStats(tasks, dateStr);
+  const stats = useMemo(() => taskService.getTaskStats(tasks, dateStr), [tasks, dateStr]);
   const isFocused = activePane === 'tasks' && !isModalOpen;
 
   // Flatten tasks for navigation (only visible ones based on expanded state)
   const flatTasks = useMemo(() => {
     try {
-      const result: { task: Task; depth: number }[] = [];
-
-      const traverse = (taskList: Task[], depth: number) => {
-        for (const task of taskList) {
-          result.push({ task, depth });
-          if (task.children.length > 0 && expandedIds.has(task.id)) {
-            traverse(task.children, depth + 1);
-          }
-        }
-      };
-
-      traverse(dayTasks, 0);
+      const result = helpers.flattenTasksWithExpanded(dayTasks, expandedIds);
       logger.log('[flatTasks] Computed', {
         dayTasksLength: dayTasks.length,
         flatTasksLength: result.length,

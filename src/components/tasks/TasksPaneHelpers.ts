@@ -269,3 +269,22 @@ export const collectParentIds = (taskList: Task[], parentIds: Set<string>) => {
     }
   }
 };
+
+export const flattenTasksWithExpanded = (
+  taskList: Task[],
+  expandedIds: Set<string>,
+): { task: Task; depth: number }[] => {
+  const result: { task: Task; depth: number }[] = [];
+
+  const traverse = (tasks: Task[], depth: number) => {
+    for (const task of tasks) {
+      result.push({ task, depth });
+      if (task.children.length > 0 && expandedIds.has(task.id)) {
+        traverse(task.children, depth + 1);
+      }
+    }
+  };
+
+  traverse(taskList, 0);
+  return result;
+};
