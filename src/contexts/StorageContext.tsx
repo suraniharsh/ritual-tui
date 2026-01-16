@@ -16,6 +16,8 @@ interface StorageProviderProps {
   children: React.ReactNode;
 }
 
+const AUTO_SAVE_DEBOUNCE_MS = 100;
+
 export const StorageProvider: React.FC<StorageProviderProps> = ({ children }) => {
   const [data, setData] = useState<StorageSchema | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,7 +45,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ children }) =>
     loadData();
   }, []);
 
-  // Debounced save
+  // Debounced save keeps disk writes low without slowing UI feedback
   const save = useCallback(async (newData: StorageSchema) => {
     setData(newData);
     latestDataRef.current = newData;
@@ -58,7 +60,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ children }) =>
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to save'));
       }
-    }, 500);
+    }, AUTO_SAVE_DEBOUNCE_MS);
   }, []);
 
   // Immediate save (for exit)
