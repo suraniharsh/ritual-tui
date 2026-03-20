@@ -8,20 +8,20 @@ described below.
 
 ## Ruleset configuration
 
-| Setting | Value |
-|---|---|
-| **Branch name pattern** | `main` |
-| **Restrict creations** | ✅ Enabled — only administrators may create `main` |
-| **Restrict deletions** | ✅ Enabled — `main` cannot be deleted |
-| **Require a pull request before merging** | ✅ Enabled |
-| &nbsp;&nbsp; Required approvals | **1** |
-| &nbsp;&nbsp; Dismiss stale reviews on new push | ✅ Enabled |
-| &nbsp;&nbsp; Require review from Code Owners | ✅ Enabled (`@suraniharsh` — see `CODEOWNERS`) |
-| **Require status checks to pass** | ✅ Enabled |
-| &nbsp;&nbsp; Required checks | `Format Check`, `Build`, `Test` |
-| &nbsp;&nbsp; Require branches to be up to date | ✅ Enabled |
-| **Block force pushes** | ✅ Enabled |
-| **Require linear history** | ✅ Enabled — squash or rebase merges only |
+| Setting                                        | Value                                              |
+| ---------------------------------------------- | -------------------------------------------------- |
+| **Branch name pattern**                        | `main`                                             |
+| **Restrict creations**                         | ✅ Enabled — only administrators may create `main` |
+| **Restrict deletions**                         | ✅ Enabled — `main` cannot be deleted              |
+| **Require a pull request before merging**      | ✅ Enabled                                         |
+| &nbsp;&nbsp; Required approvals                | **1**                                              |
+| &nbsp;&nbsp; Dismiss stale reviews on new push | ✅ Enabled                                         |
+| &nbsp;&nbsp; Require review from Code Owners   | ✅ Enabled (`@suraniharsh` — see `CODEOWNERS`)     |
+| **Require status checks to pass**              | ✅ Enabled                                         |
+| &nbsp;&nbsp; Required checks                   | `Format Check`, `Build`, `Test`                    |
+| &nbsp;&nbsp; Require branches to be up to date | ✅ Enabled                                         |
+| **Block force pushes**                         | ✅ Enabled                                         |
+| **Require linear history**                     | ✅ Enabled — squash or rebase merges only          |
 
 ---
 
@@ -29,11 +29,11 @@ described below.
 
 The three required status checks are provided by `.github/workflows/ci.yml`:
 
-| Job name | What it verifies |
-|---|---|
-| `Format Check` | `pnpm format:check` — Prettier formatting |
-| `Build` | `pnpm build` — TypeScript compiles cleanly |
-| `Test` | `pnpm test:coverage` — all tests pass |
+| Job name       | What it verifies                           |
+| -------------- | ------------------------------------------ |
+| `Format Check` | `pnpm format:check` — Prettier formatting  |
+| `Build`        | `pnpm build` — TypeScript compiles cleanly |
+| `Test`         | `pnpm test:coverage` — all tests pass      |
 
 All three jobs must pass before a PR can be merged into `main`.
 
