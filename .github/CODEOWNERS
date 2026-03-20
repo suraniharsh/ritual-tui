@@ -1,0 +1,5 @@
+# CODEOWNERS — every pull request requires review from the maintainer(s) listed here.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global rule — all files require a review from the repository owner
+* @suraniharsh

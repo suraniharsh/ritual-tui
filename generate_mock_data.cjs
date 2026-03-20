@@ -295,9 +295,9 @@ function generateData() {
         .filter(Boolean);
 
       // Track all subtask IDs
-      task.children.forEach(child => {
+      task.children.forEach((child) => {
         allTaskIds.add(child.id);
-        child.children.forEach(grandchild => {
+        child.children.forEach((grandchild) => {
           allTaskIds.add(grandchild.id);
         });
       });
@@ -398,9 +398,9 @@ function generateData() {
           .filter(Boolean);
 
         // Track all subtask IDs
-        task.children.forEach(child => {
+        task.children.forEach((child) => {
           allTaskIds.add(child.id);
-          child.children.forEach(grandchild => {
+          child.children.forEach((grandchild) => {
             allTaskIds.add(grandchild.id);
           });
         });
