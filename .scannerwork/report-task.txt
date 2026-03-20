@@ -1,6 +1,0 @@
-projectKey=ritual-local
-serverUrl=http://localhost:9000
-serverVersion=26.3.0.120487
-dashboardUrl=http://localhost:9000/dashboard?id=ritual-local
-ceTaskId=47e02f75-458e-44e9-ab0b-1f1d4e91aa29
-ceTaskUrl=http://localhost:9000/api/ce/task?id=47e02f75-458e-44e9-ab0b-1f1d4e91aa29
