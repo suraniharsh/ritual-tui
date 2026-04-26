@@ -25,7 +25,7 @@ export const findSubtaskByTitlePath = (
   targetTask: Task,
   path: string[] = [],
 ): string[] | null => {
-  if (task.title === targetTask.title && path.length > 0) {
+  if (task.title === targetTask.title) {
     return path;
   }
   for (const child of task.children) {
