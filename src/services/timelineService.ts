@@ -1,5 +1,6 @@
 import { v4 as uuid } from 'uuid';
-import { getDateString } from '../utils/date';
+import { getDateString, parseDateString } from '../utils/date';
+import { compareDesc } from 'date-fns';
 import type { TimelineEvent, TimelineEventType } from '../types/timeline';
 import type { TaskState } from '../types/task';
 
@@ -66,7 +67,11 @@ export class TimelineService {
     let removed = false;
 
     // Process dates in reverse order to find the most recent event
-    const dates = Object.keys(timeline).sort((a, b) => b.localeCompare(a));
+    const dates = Object.keys(timeline).sort((a, b) => {
+      const dateA = parseDateString(a);
+      const dateB = parseDateString(b);
+      return compareDesc(dateA, dateB);
+    });
 
     for (const date of dates) {
       const events = timeline[date];
