@@ -155,11 +155,27 @@ export class RecurringTaskService {
    * Get next occurrence for custom days of week
    */
   private getNextCustomDayOfWeek(baseDate: Date, daysOfWeek: number[]): Date | null {
+    // Validate daysOfWeek array
+    if (!daysOfWeek || daysOfWeek.length === 0) {
+      return null;
+    }
+
+    // Check if all values are valid day numbers (0-6)
+    const hasInvalidDays = daysOfWeek.some((day) => day < 0 || day > 6);
+    if (hasInvalidDays) {
+      return null;
+    }
+
     let nextDate = addDays(baseDate, 1);
+    let iterations = 0;
+    const maxIterations = 14; // Safety limit: 2 weeks
+
     while (!daysOfWeek.includes(nextDate.getDay())) {
       nextDate = addDays(nextDate, 1);
+      iterations++;
+
       // Safety check to prevent infinite loop
-      if (nextDate.getTime() - baseDate.getTime() > 7 * 24 * 60 * 60 * 1000) {
+      if (iterations >= maxIterations) {
         return null;
       }
     }
