@@ -6,6 +6,7 @@ import { AppProvider, useApp } from './contexts/AppContext';
 import { UndoProvider } from './contexts/UndoContext';
 import { useKeyboardNav } from './hooks/useKeyboardNav';
 import { useTerminalSize } from './hooks/useTerminalSize';
+import { logger } from './utils/logger';
 import { ThreeColumnLayout } from './components/layout/ThreeColumnLayout';
 import { CalendarPane } from './components/calendar/CalendarPane';
 import { TasksPane } from './components/tasks/TasksPane';
@@ -95,7 +96,7 @@ const AppContent: React.FC = () => {
         setShowRecurringTaskDialog(false);
         setRecurringTaskId(null);
       } catch (err) {
-        console.error('Error setting task recurrence:', err);
+        logger.log('Error setting task recurrence', { error: String(err) });
       }
     };
 

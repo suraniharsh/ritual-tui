@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { storageService } from '../services/storage';
 import type { StorageSchema } from '../types/storage';
+import { logger } from '../utils/logger';
 
 interface StorageContextType {
   data: StorageSchema | null;
@@ -74,7 +75,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ children }) =>
       try {
         await storageService.save(data);
       } catch (err) {
-        console.error('Failed to save:', err);
+        logger.log('Failed to save', { error: String(err) });
       }
     }
   }, []);
@@ -88,7 +89,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ children }) =>
       if (latestDataRef.current) {
         // Use sync write for unmount to ensure data is saved
         storageService.save(latestDataRef.current).catch((err) => {
-          console.error('Failed to save on unmount:', err);
+          logger.log('Failed to save on unmount', { error: String(err) });
         });
       }
     };

@@ -459,7 +459,7 @@ export const TasksPane: React.FC = () => {
       logger.log('[performStateChange] Completed successfully');
     } catch (err) {
       logger.log('[performStateChange] Error', { error: err });
-      console.error('Error changing task state:', err);
+      logger.log('Error changing task state', { error: String(err) });
     }
   };
 
@@ -760,7 +760,7 @@ export const TasksPane: React.FC = () => {
         handleEditSubmit(trimmed);
       }
     } catch (err) {
-      console.error('Error saving task:', err);
+      logger.log('Error saving task', { error: String(err) });
     }
   };
 
@@ -945,7 +945,7 @@ export const TasksPane: React.FC = () => {
         }
       }
     } catch (err) {
-      console.error('Error toggling task start:', err);
+      logger.log('Error toggling task start', { error: String(err) });
     }
   };
 

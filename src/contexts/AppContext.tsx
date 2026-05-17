@@ -345,7 +345,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         })
         .catch((err) => {
-          console.error('Failed to check for updates:', err);
+          logger.log('Failed to check for updates', { error: String(err) });
         });
     }
   }, [data]);

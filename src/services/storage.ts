@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
 import { homedir } from 'node:os';
 import type { StorageSchema } from '../types/storage';
+import { logger } from '../utils/logger';
 
 const getStoragePath = (): string => {
   const home = homedir();
@@ -50,7 +51,7 @@ export class StorageService {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return getDefaultSchema();
       }
-      console.error('Failed to load storage:', error);
+      logger.log('Failed to load storage', { error: String(error) });
       return getDefaultSchema();
     }
   }
@@ -64,7 +65,7 @@ export class StorageService {
       const serialized = this.serializeDates(data);
       await fs.writeFile(this.filePath, JSON.stringify(serialized, null, 2), 'utf-8');
     } catch (error) {
-      console.error('Failed to save storage:', error);
+      logger.log('Failed to save storage', { error: String(error) });
     }
   }
 
@@ -75,7 +76,7 @@ export class StorageService {
       const data = await fs.readFile(this.filePath, 'utf-8');
       await fs.writeFile(backupPath, data, 'utf-8');
     } catch (error) {
-      console.error('Failed to backup storage:', error);
+      logger.log('Failed to backup storage', { error: String(error) });
     }
   }
 
