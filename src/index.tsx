@@ -58,5 +58,5 @@ if (args.length > 0 && (args[0] === 'export' || args[0] === 'import')) {
 } else {
   const app = render(<App />, { exitOnCtrlC: false });
   // Make the app instance globally accessible for clean exit
-  (global as any).__inkApp = app;
+  (globalThis as Record<string, unknown>).__inkApp = app;
 }

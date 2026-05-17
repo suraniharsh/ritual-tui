@@ -22,7 +22,7 @@ class Logger {
     this.log('Logger initialized');
   }
 
-  log(message: string, data?: any) {
+  log(message: string, data?: Record<string, unknown>) {
     if (!this.stream) return;
 
     const timestamp = new Date().toISOString();

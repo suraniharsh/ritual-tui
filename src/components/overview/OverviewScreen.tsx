@@ -5,6 +5,7 @@ import { useApp } from '../../contexts/AppContext';
 import { getDateString, formatDate } from '../../utils/date';
 import { getCheckbox, getStateColor } from '../../utils/task';
 import type { Task } from '../../types/task';
+import type { Theme } from '../../types/theme';
 import { startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { useTerminalSize } from '../../hooks/useTerminalSize';
 
@@ -217,7 +218,7 @@ export const OverviewScreen: React.FC = () => {
 
 interface TaskItemProps {
   task: Task;
-  theme: any;
+  theme: Theme;
   depth: number;
 }
 

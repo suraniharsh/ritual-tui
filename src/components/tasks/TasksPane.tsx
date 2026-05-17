@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
+import type { Key } from 'ink';
 import { ControlledTextInput } from '../common/ControlledTextInput';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useApp } from '../../contexts/AppContext';
@@ -808,7 +809,7 @@ export const TasksPane: React.FC = () => {
     setExpandedIds(new Set());
   };
 
-  const handleGlobalKeys = (input: string, key: any) => {
+  const handleGlobalKeys = (input: string, key: Key) => {
     // Expand/Collapse ALL with Cmd/Ctrl + arrow keys
     if ((key.meta || key.ctrl) && (input === 'a' || key.leftArrow)) {
       handleCollapseAll();
@@ -821,7 +822,7 @@ export const TasksPane: React.FC = () => {
     return false;
   };
 
-  const handleNavigationKeys = (input: string, key: any) => {
+  const handleNavigationKeys = (input: string, key: Key) => {
     if (input === 'j' || key.downArrow) {
       logger.log('[handleNavigationKeys] Down key pressed', {
         currentIndex: selectedIndex,
@@ -855,7 +856,7 @@ export const TasksPane: React.FC = () => {
     return false;
   };
 
-  const handleTaskActionKeys = (input: string, key: any) => {
+  const handleTaskActionKeys = (input: string, key: Key) => {
     // Handle 'a' key for adding tasks - works even when no task is selected
     if (input === 'a' && !key.meta && !key.ctrl && !key.shift) {
       handleAddTask();
@@ -897,7 +898,7 @@ export const TasksPane: React.FC = () => {
     }
   };
 
-  const handleAdditionalTaskKeys = (input: string, key: any) => {
+  const handleAdditionalTaskKeys = (input: string, key: Key) => {
     if (!selectedTask) return false;
 
     if (input === 's') {

@@ -1,4 +1,5 @@
 import { storageService } from './services/storage';
+import type { RawSchema } from './services/storage';
 import { StorageSchema } from './types/storage';
 import readline from 'readline';
 
@@ -11,7 +12,7 @@ interface ExportResult {
 }
 
 interface ImportResult {
-  data: StorageSchema;
+  data: RawSchema;
 }
 
 interface ApiError {

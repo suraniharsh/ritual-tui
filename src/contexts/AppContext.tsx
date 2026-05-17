@@ -7,6 +7,7 @@ import type { TaskTree } from '../types/task';
 import type { TimelineEvent } from '../types/timeline';
 import type { CalendarDate } from '../types/calendar';
 import type { UndoActionType } from '../types/undo';
+import type { StorageSchema } from '../types/storage';
 import type { RecurringChoice, RecurringActionType } from '../types/recurring';
 import type { PaneType } from '../types/app';
 import { checkForUpdate, UpdateInfo } from '../utils/version';

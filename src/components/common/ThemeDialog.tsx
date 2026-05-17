@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
+import type { Key } from 'ink';
 import { ControlledTextInput } from './ControlledTextInput';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useApp } from '../../contexts/AppContext';
@@ -62,7 +63,7 @@ export const ThemeDialog: React.FC = () => {
 
   // Handle search mode navigation
   const handleSearchMode = (
-    key: any,
+    key: Key,
     themeItems: Array<{ type: string; value: string }>,
   ): boolean => {
     if (key.downArrow && themeItems.length > 0) {
@@ -76,7 +77,7 @@ export const ThemeDialog: React.FC = () => {
   // Handle list mode navigation
   const handleListMode = (
     input: string,
-    key: any,
+    key: Key,
     selectedIndex: number,
     themeItems: Array<{ type: string; value: string }>,
   ): boolean => {

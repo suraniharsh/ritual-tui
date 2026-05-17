@@ -65,7 +65,9 @@ export const useKeyboardNav = () => {
         saveNow()
           .then(() => {
             // Unmount the Ink app first
-            const inkApp = (globalThis as any).__inkApp;
+            const inkApp = (globalThis as Record<string, unknown>).__inkApp as
+              | { unmount: () => void }
+              | undefined;
             if (inkApp) {
               inkApp.unmount();
             }
@@ -79,7 +81,9 @@ export const useKeyboardNav = () => {
           })
           .catch(() => {
             // Unmount the Ink app first even on error
-            const inkApp = (globalThis as any).__inkApp;
+            const inkApp = (globalThis as Record<string, unknown>).__inkApp as
+              | { unmount: () => void }
+              | undefined;
             if (inkApp) {
               inkApp.unmount();
             }

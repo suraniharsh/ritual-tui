@@ -1,7 +1,9 @@
 import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
 import { homedir } from 'node:os';
-import type { StorageSchema } from '../types/storage';
+import type { StorageSchema, UserSettings } from '../types/storage';
+import type { Task, TaskTree, RecurrenceFrequency } from '../types/task';
+import type { TimelineEvent, TimelineEventType } from '../types/timeline';
 import { logger } from '../utils/logger';
 
 const getStoragePath = (): string => {
@@ -33,6 +35,47 @@ const getDefaultSchema = (): StorageSchema => ({
   },
 });
 
+interface RawRecurrencePattern {
+  frequency: string;
+  interval?: number;
+  daysOfWeek?: number[];
+  endDate?: string;
+  excludedDates?: string[];
+}
+
+interface RawTask {
+  id: string;
+  title: string;
+  state: string;
+  createdAt: string;
+  updatedAt: string;
+  startTime?: string;
+  endTime?: string;
+  children: RawTask[];
+  parentId?: string;
+  date: string;
+  recurrence?: RawRecurrencePattern;
+  isRecurringInstance?: boolean;
+  recurringParentId?: string;
+}
+
+interface RawEvent {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  type: string;
+  timestamp: string;
+  previousState?: string;
+  newState?: string;
+}
+
+export interface RawSchema {
+  version: string;
+  tasks: { [date: string]: RawTask[] };
+  timeline: { [date: string]: RawEvent[] };
+  settings: UserSettings;
+}
+
 export class StorageService {
   private readonly filePath: string;
 
@@ -43,7 +86,7 @@ export class StorageService {
   async load(): Promise<StorageSchema> {
     try {
       const data = await fs.readFile(this.filePath, 'utf-8');
-      const parsed = JSON.parse(data) as StorageSchema;
+      const parsed = JSON.parse(data) as RawSchema;
 
       // Convert date strings back to Date objects
       return this.hydrateDates(parsed);
@@ -85,96 +128,104 @@ export class StorageService {
   }
 
   // Remove duplicate IDs and tasks that are leaked children (have parentId set at top level)
-  private deduplicateTopLevel(tasks: any[]): any[] {
+  private deduplicateTopLevel(tasks: Task[]): Task[] {
     const seen = new Set<string>();
-    return tasks.reduce((acc: any[], task: any) => {
-      if (!seen.has(task.id) && !task.parentId) {
-        seen.add(task.id);
-        acc.push(task);
-      }
-      return acc;
-    }, []);
+    return tasks.filter((task) => {
+      if (seen.has(task.id) || task.parentId) return false;
+      seen.add(task.id);
+      return true;
+    });
   }
 
-  public hydrateDates(data: any): StorageSchema {
+  public hydrateDates(data: RawSchema): StorageSchema {
+    const tasks: TaskTree = {};
     if (data.tasks) {
-      Object.keys(data.tasks).forEach((date) => {
-        data.tasks[date] = this.deduplicateTopLevel(
-          data.tasks[date].map((task: any) => this.hydrateTask(task)),
+      for (const date of Object.keys(data.tasks)) {
+        tasks[date] = this.deduplicateTopLevel(
+          data.tasks[date].map((task) => this.hydrateTask(task)),
         );
-      });
+      }
     }
 
+    const timeline: { [date: string]: TimelineEvent[] } = {};
     if (data.timeline) {
-      Object.keys(data.timeline).forEach((date) => {
-        data.timeline[date] = data.timeline[date].map((event: any) => ({
+      for (const date of Object.keys(data.timeline)) {
+        timeline[date] = data.timeline[date].map((event) => ({
           ...event,
+          type: event.type as TimelineEventType,
           timestamp: new Date(event.timestamp),
-          previousState: event.previousState,
-          newState: event.newState,
+          previousState: event.previousState as TimelineEvent['previousState'],
+          newState: event.newState as TimelineEvent['newState'],
         }));
-      });
+      }
     }
 
-    return data as StorageSchema;
+    return { ...data, tasks, timeline };
   }
 
-  private hydrateTask(task: any): any {
+  private hydrateTask(task: RawTask): Task {
     return {
-      ...task,
+      id: task.id,
+      title: task.title,
+      state: task.state as Task['state'],
       createdAt: new Date(task.createdAt),
       updatedAt: new Date(task.updatedAt),
       startTime: task.startTime ? new Date(task.startTime) : undefined,
       endTime: task.endTime ? new Date(task.endTime) : undefined,
+      children: task.children ? task.children.map((child) => this.hydrateTask(child)) : [],
+      parentId: task.parentId,
+      date: task.date,
       recurrence: task.recurrence
         ? {
             ...task.recurrence,
+            frequency: task.recurrence.frequency as RecurrenceFrequency,
             endDate: task.recurrence.endDate ? new Date(task.recurrence.endDate) : undefined,
           }
         : undefined,
-      children: task.children ? task.children.map((child: any) => this.hydrateTask(child)) : [],
+      isRecurringInstance: task.isRecurringInstance,
+      recurringParentId: task.recurringParentId,
     };
   }
 
-  private serializeDates(data: StorageSchema): any {
-    return {
-      ...data,
-      tasks: Object.keys(data.tasks).reduce(
-        (acc, date) => {
-          acc[date] = this.deduplicateTopLevel(data.tasks[date]).map((task) =>
-            this.serializeTask(task),
-          );
-          return acc;
-        },
-        {} as Record<string, any>,
-      ),
-      timeline: Object.keys(data.timeline).reduce(
-        (acc, date) => {
-          acc[date] = data.timeline[date].map((event) => ({
-            ...event,
-            timestamp: event.timestamp.toISOString(),
-          }));
-          return acc;
-        },
-        {} as Record<string, any>,
-      ),
-    };
+  private serializeDates(data: StorageSchema): RawSchema {
+    const tasks: { [date: string]: RawTask[] } = {};
+    for (const date of Object.keys(data.tasks)) {
+      tasks[date] = this.deduplicateTopLevel(data.tasks[date]).map((task) =>
+        this.serializeTask(task),
+      );
+    }
+
+    const timeline: { [date: string]: RawEvent[] } = {};
+    for (const date of Object.keys(data.timeline)) {
+      timeline[date] = data.timeline[date].map((event) => ({
+        ...event,
+        timestamp: event.timestamp.toISOString(),
+      }));
+    }
+
+    return { ...data, tasks, timeline };
   }
 
-  private serializeTask(task: any): any {
+  private serializeTask(task: Task): RawTask {
     return {
-      ...task,
+      id: task.id,
+      title: task.title,
+      state: task.state,
       createdAt: task.createdAt.toISOString(),
       updatedAt: task.updatedAt.toISOString(),
       startTime: task.startTime ? task.startTime.toISOString() : undefined,
       endTime: task.endTime ? task.endTime.toISOString() : undefined,
+      children: task.children ? task.children.map((child) => this.serializeTask(child)) : [],
+      parentId: task.parentId,
+      date: task.date,
       recurrence: task.recurrence
         ? {
             ...task.recurrence,
             endDate: task.recurrence.endDate ? task.recurrence.endDate.toISOString() : undefined,
           }
         : undefined,
-      children: task.children ? task.children.map((child: any) => this.serializeTask(child)) : [],
+      isRecurringInstance: task.isRecurringInstance,
+      recurringParentId: task.recurringParentId,
     };
   }
 }

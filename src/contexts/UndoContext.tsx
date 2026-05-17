@@ -36,13 +36,13 @@ function deepClone<T>(obj: T): T {
     return obj.map((item) => deepClone(item)) as T;
   }
 
-  const cloned: any = {};
+  const cloned = {} as Record<string, unknown>;
   for (const key in obj) {
     if (Object.hasOwn(obj, key)) {
-      cloned[key] = deepClone((obj as any)[key]);
+      cloned[key] = deepClone((obj as Record<string, unknown>)[key]);
     }
   }
-  return cloned;
+  return cloned as unknown as T;
 }
 
 export const UndoProvider: React.FC<UndoProviderProps> = ({ children }) => {

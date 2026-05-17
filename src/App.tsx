@@ -23,7 +23,6 @@ import { OverviewScreen } from './components/overview/OverviewScreen';
 import { FullscreenBackground } from './components/common/FullscreenBackground';
 import { taskService } from './services/taskService';
 import type { RecurrencePattern } from './types/task';
-import { logger } from './utils/logger';
 
 const AppContent: React.FC = () => {
   const {

@@ -1,5 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import type { Task, TaskState, TaskTree } from '../types/task';
+import type { RecurringTaskService } from './recurringTaskService';
 import {
   findTaskById,
   updateTaskInTree,
@@ -133,7 +134,11 @@ export class TaskService {
     return tasks[date] || [];
   }
 
-  getDayTasks(tasks: TaskTree, dateStr: string, recurringTaskService: any): Task[] {
+  getDayTasks(
+    tasks: TaskTree,
+    dateStr: string,
+    recurringTaskService: RecurringTaskService,
+  ): Task[] {
     const existingTasks = tasks[dateStr] || [];
     const currentDateObj = new Date(dateStr);
     const recurringInstances = this.generateRecurringInstancesForDate(
@@ -150,7 +155,7 @@ export class TaskService {
     tasks: TaskTree,
     currentDateObj: Date,
     existingTasks: Task[],
-    recurringTaskService: any,
+    recurringTaskService: RecurringTaskService,
   ): Task[] {
     const recurringInstances: Task[] = [];
 
