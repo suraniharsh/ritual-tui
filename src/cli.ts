@@ -3,6 +3,20 @@ import { StorageSchema } from './types/storage';
 import readline from 'readline';
 
 const SERVER_URL = process.env.RITUAL_SERVER_URL;
+const FETCH_TIMEOUT_MS = 10_000;
+
+interface ExportResult {
+  code: string;
+  expiresAt: string;
+}
+
+interface ImportResult {
+  data: StorageSchema;
+}
+
+interface ApiError {
+  message?: string;
+}
 
 export async function handleCli(args: string[]) {
   const command = args[0];
@@ -17,25 +31,34 @@ export async function handleCli(args: string[]) {
   }
 }
 
+function requireServerUrl(): string {
+  if (!SERVER_URL) {
+    console.error('Error: RITUAL_SERVER_URL environment variable is not set.');
+    console.error('Add it to your .env file: RITUAL_SERVER_URL=https://your-server.com');
+    process.exit(1);
+  }
+  return SERVER_URL;
+}
+
 async function handleExport() {
+  const serverUrl = requireServerUrl();
+
   try {
     const data = await storageService.load();
 
-    // We need the raw JSON with ISO strings for transport, so we'll access the private method via 'any' cast
-    // or we could refactor. Since we have load() returning hydrated objects, let's just use JSON.stringify
-    // which will call .toISOString() on dates automatically.
-    const response = await fetch(`${SERVER_URL}/api/data/export`, {
+    const response = await fetch(`${serverUrl}/api/data/export`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data }),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!response.ok) {
-      const error: any = await response.json();
+      const error = (await response.json()) as ApiError;
       throw new Error(error.message || 'Export failed');
     }
 
-    const result: any = await response.json();
+    const result = (await response.json()) as ExportResult;
     console.log('\nData exported successfully!');
     console.log('---------------------------');
     console.log(`Secret Key: ${result.code}`);
@@ -43,12 +66,18 @@ async function handleExport() {
     console.log('---------------------------\n');
     console.log(`Run 'ritual import' on another machine and enter this key to sync your data.\n`);
   } catch (error) {
-    console.error('Export failed:', error);
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      console.error('Export failed: server did not respond within 10 seconds.');
+    } else {
+      console.error('Export failed:', error);
+    }
     process.exit(1);
   }
 }
 
 async function handleImport() {
+  const serverUrl = requireServerUrl();
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -59,32 +88,40 @@ async function handleImport() {
   };
 
   try {
-    const code = await question('Enter your secret key: ');
+    const code = (await question('Enter your secret key: ')).trim();
 
-    const response = await fetch(`${SERVER_URL}/api/data/import`, {
+    if (!code) {
+      console.error('Error: secret key cannot be empty.');
+      return;
+    }
+
+    const response = await fetch(`${serverUrl}/api/data/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: code.trim() }),
+      body: JSON.stringify({ code }),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!response.ok) {
-      const error: any = await response.json();
+      const error = (await response.json()) as ApiError;
       throw new Error(error.message || 'Import failed');
     }
 
-    const json: any = await response.json();
-    const remoteData = json.data;
-    // Hydrate dates so we can work with objects
-    const hydratedRemoteData = storageService.hydrateDates(remoteData);
+    const json = (await response.json()) as ImportResult;
+    const hydratedRemoteData = storageService.hydrateDates(json.data);
 
-    const action = await question(
-      '\nData found! Do you want to (r)eplace existing data or (m)erge with it? [r/m]: ',
-    );
+    const action = (
+      await question(
+        '\nData found! Do you want to (r)eplace existing data or (m)erge with it? [r/m]: ',
+      )
+    )
+      .trim()
+      .toLowerCase();
 
-    if (action.toLowerCase() === 'r') {
+    if (action === 'r') {
       await storageService.save(hydratedRemoteData);
       console.log('Data successfully replaced.');
-    } else if (action.toLowerCase() === 'm') {
+    } else if (action === 'm') {
       const currentData = await storageService.load();
       const mergedData = mergeData(currentData, hydratedRemoteData);
       await storageService.save(mergedData);
@@ -93,7 +130,11 @@ async function handleImport() {
       console.log('Cancelled.');
     }
   } catch (error) {
-    console.error('Import failed:', error);
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      console.error('Import failed: server did not respond within 10 seconds.');
+    } else {
+      console.error('Import failed:', error);
+    }
   } finally {
     rl.close();
   }
@@ -102,34 +143,25 @@ async function handleImport() {
 function mergeData(local: StorageSchema, remote: StorageSchema): StorageSchema {
   const merged: StorageSchema = { ...local };
 
-  // Merge Tasks
   Object.keys(remote.tasks).forEach((date) => {
     if (!merged.tasks[date]) {
       merged.tasks[date] = remote.tasks[date];
     } else {
-      // Simple merge: add remote tasks to local list for that day, de-duping by ID could be added here
-      // For now, let's just append and let the user sort it out if there are dupes,
-      // or simplistic de-dupe by ID
       const existingIds = new Set(merged.tasks[date].map((t) => t.id));
       const newTasks = remote.tasks[date].filter((t) => !existingIds.has(t.id));
       merged.tasks[date] = [...merged.tasks[date], ...newTasks];
     }
   });
 
-  // Merge Timeline
   Object.keys(remote.timeline).forEach((date) => {
     if (!merged.timeline[date]) {
       merged.timeline[date] = remote.timeline[date];
     } else {
-      // Similar de-dupe for timeline events?
-      // Timeline events might not have unique IDs in older versions, assuming they do or just append
-      // Let's just append for now to be safe against data loss
-      merged.timeline[date] = [...merged.timeline[date], ...remote.timeline[date]];
+      const existingIds = new Set(merged.timeline[date].map((e) => e.id));
+      const newEvents = remote.timeline[date].filter((e) => !existingIds.has(e.id));
+      merged.timeline[date] = [...merged.timeline[date], ...newEvents];
     }
   });
-
-  // Settings - keep local settings, or maybe overwrite if remote is newer?
-  // Let's keep local settings to preserve user preference on this machine.
 
   return merged;
 }
