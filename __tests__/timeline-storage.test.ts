@@ -13,10 +13,18 @@ vi.mock('node:fs', () => {
     writeFile: vi.fn(),
     mkdir: vi.fn(),
   };
+  const mockStream = { write: vi.fn(), end: vi.fn() };
+  const syncMethods = {
+    existsSync: vi.fn().mockReturnValue(false),
+    unlinkSync: vi.fn(),
+    createWriteStream: vi.fn().mockReturnValue(mockStream),
+  };
   return {
     promises: mockPromises,
+    ...syncMethods,
     default: {
       promises: mockPromises,
+      ...syncMethods,
     },
   };
 });
@@ -459,16 +467,11 @@ describe('StorageService', () => {
     });
 
     it('handles save error gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const error = new Error('Write failed');
       (fs.mkdir as any).mockResolvedValue(undefined);
-      (fs.writeFile as any).mockRejectedValue(error);
+      (fs.writeFile as any).mockRejectedValue(new Error('Write failed'));
 
       const data = { version: '1.0.0', tasks: {}, timeline: {}, settings: {} } as any;
-      await storageService.save(data);
-
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to save storage:', error);
-      consoleSpy.mockRestore();
+      await expect(storageService.save(data)).resolves.toBeUndefined();
     });
   });
 
@@ -489,14 +492,9 @@ describe('StorageService', () => {
     });
 
     it('handles backup error gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const error = new Error('Backup failed');
-      (fs.readFile as any).mockRejectedValue(error);
+      (fs.readFile as any).mockRejectedValue(new Error('Backup failed'));
 
-      await storageService.backup();
-
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to backup storage:', error);
-      consoleSpy.mockRestore();
+      await expect(storageService.backup()).resolves.toBeUndefined();
     });
   });
 
@@ -581,7 +579,7 @@ describe('StorageService', () => {
 
       const home = process.env.HOME || homedir();
       const service = new StorageService();
-      expect(service.getStoragePath()).toBe(`${home}/.config/ritual/data.json`);
+      expect(service.getStoragePath()).toBe(`${home}/.local/share/ritual/data.json`);
 
       Object.defineProperty(process, 'platform', { value: originalPlatform });
     });
